@@ -66,7 +66,7 @@ except:
     if os.path.isfile(VERSION_FILE):
         from src.version import version
     else:
-        version = 'installed on ' + strftime("%Y-%m-%dT%H-%M-%S", gmtime())
+        version = 'installed on ' + time.strftime("%Y-%m-%dT%H-%M-%S", time.gmtime())
 try:
     os.unlink(VERSION_FILE)
 except OSError: # Does not exist
@@ -219,6 +219,7 @@ setup(
              'scripts/supybot-botchk',
              'scripts/supybot-wizard',
              'scripts/supybot-adduser',
+             'scripts/supybot-reset-password',
              'scripts/supybot-plugin-doc',
              'scripts/supybot-plugin-create',
              ],
@@ -240,12 +241,21 @@ if sys.version_info < (2, 7, 9):
             '<http://doc.supybot.aperio.fr/en/latest/use/security.html#ssl-python-versions>',
             DeprecationWarning)
 elif sys.version_info < (3, 0):
-    pass # fine, for the moment
+    pass
 elif sys.version_info < (3, 4):
     warnings.warn('Running Limnoria on Python 3.2 or 3.3 is not '
             'recommended because these versions do not support SSL '
             'certificate verification. For more informations, see: '
             '<http://doc.supybot.aperio.fr/en/latest/use/security.html#ssl-python-versions>',
+            DeprecationWarning)
+
+if sys.version_info < (3, 0):
+    warnings.warn('You are installing Limnoria for Python 2. While Python 2 '
+            'is currently supported by Limnoria, this may change in the near '
+            'future. If there is anything preventing you frorm upgrading to '
+            'Python 3 (incompatible third-party plugin, ...), please open a '
+            'bug at <https://github.com/ProgVal/Limnoria/issues> and we\'ll '
+            'see together what we can do about it.',
             DeprecationWarning)
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

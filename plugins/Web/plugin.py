@@ -156,14 +156,20 @@ class Web(callbacks.PluginRegexp):
                     'replace')
         except UnicodeDecodeError:
             pass
-        parser = Title()
         if minisix.PY3 and isinstance(text, bytes):
             if raiseErrors:
                 irc.error(_('Could not guess the page\'s encoding. (Try '
                         'installing python-charade.)'), Raise=True)
             else:
                 return None
-        parser.feed(text)
+        try:
+            parser = Title()
+            parser.feed(text)
+        except UnicodeDecodeError:
+            # Workaround for Python 2
+            # https://github.com/ProgVal/Limnoria/issues/1359
+            parser = Title()
+            parser.feed(text.encode('utf8'))
         parser.close()
         title = utils.str.normalizeWhitespace(''.join(parser.data).strip())
         if title:
@@ -200,7 +206,7 @@ class Web(callbacks.PluginRegexp):
                         if self.registryValue('snarferShowTargetDomain', channel)
                         else url)
                 prefix = self.registryValue('snarferPrefix', channel)
-                s = prefix + title
+                s = "%s %s" % (prefix, title)
                 if self.registryValue('snarferShowDomain', channel):
                     s += format(_(' (at %s)'), domain)
                 irc.reply(s, prefixNick=False)

@@ -978,6 +978,7 @@ class Irc(IrcCommandDispatcher, log.Firewalled):
         self.user = ircutils.standardSubstitute(self, None, get_value('user'))
         self.ident = get_value('ident')
         self.alternateNicks = conf.supybot.nick.alternates()[:]
+        self.triedNicks = ircutils.IrcSet()
         self.password = network_config.password()
         self.prefix = '%s!%s@%s' % (self.nick, self.ident, 'unset.domain')
         # The rest.
@@ -1081,6 +1082,9 @@ class Irc(IrcCommandDispatcher, log.Firewalled):
             self.sasl_current_mechanism = self.sasl_next_mechanisms.pop(0)
             self.sendMsg(ircmsgs.IrcMsg(command='AUTHENTICATE',
                 args=(self.sasl_current_mechanism.upper(),)))
+        elif conf.supybot.networks.get(self.network).sasl.required():
+            log.error('None of the configured SASL mechanisms succeeded, '
+                    'aborting connection.')
         else:
             self.sasl_current_mechanism = None
             self.endCapabilityNegociation()
@@ -1367,20 +1371,23 @@ class Irc(IrcCommandDispatcher, log.Firewalled):
                     nick %= conf.supybot.nick()
                 else:
                     nick %= network_nick
-            return nick
-        else:
-            nick = conf.supybot.nick()
-            network_nick = conf.supybot.networks.get(self.network).nick()
-            if network_nick != '':
-                nick = network_nick
-            ret = nick
-            L = list(nick)
-            while len(L) <= 3:
-                L.append('`')
-            while ircutils.strEqual(ret, nick):
-                L[random.randrange(len(L))] = utils.iter.choice('0123456789')
-                ret = ''.join(L)
-            return ret
+            if nick not in self.triedNicks:
+                self.triedNicks.add(nick)
+                return nick
+
+        nick = conf.supybot.nick()
+        network_nick = conf.supybot.networks.get(self.network).nick()
+        if network_nick != '':
+            nick = network_nick
+        ret = nick
+        L = list(nick)
+        while len(L) <= 3:
+            L.append('`')
+        while ret in self.triedNicks:
+            L[random.randrange(len(L))] = utils.iter.choice('0123456789')
+            ret = ''.join(L)
+        self.triedNicks.add(ret)
+        return ret
 
     def do002(self, msg):
         """Logs the ircd version."""
